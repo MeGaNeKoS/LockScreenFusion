@@ -1,0 +1,13 @@
+{
+  "input": {
+    "source": "source/original.jpg",
+    "lockscreen": "lockscreen/lockscreen.png",
+    "password": "lockscreen/password.png"
+  },
+  "output": {
+    "pattern": "backgrounds/pattern_lock_screen.png",
+    "result": "result/result.jpg",
+    "source_cropped": "source/cropped.jpg",
+    "source_resized": "source/resized.jpg"
+  }
+}
