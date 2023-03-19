@@ -44,7 +44,7 @@ def detect_tint_percentage(img, sample_area):
     return average_tint_percentage
 
 
-def create_mask_from_images(lock_screen_image, as_circle=False):
+def create_mask_from_images(lock_screen_image, as_circle=False, scale_percentage=100, transform=(0, 0)):
     # Create a mask with black pixels from the circle image that are not black in the original image
     width, height = lock_screen_image.size
     mask = Image.new("L", (width, height), 0)
@@ -58,11 +58,29 @@ def create_mask_from_images(lock_screen_image, as_circle=False):
                 min_y = min(min_y, y)
                 max_x = max(max_x, x)
                 max_y = max(max_y, y)
-                if as_circle:
-                    mask.putpixel((x, y), 255)
 
-    if not as_circle:
-        # make mask square
+    center_x = (min_x + max_x) // 2 + transform[0]
+    center_y = (min_y + max_y) // 2 + transform[1]
+    mask_width = max_x - min_x
+    mask_height = max_y - min_y
+    new_width = int(mask_width * (scale_percentage / 100))
+    new_height = int(mask_height * (scale_percentage / 100))
+    min_x = max(center_x - new_width // 2, 0)
+    max_x = min(center_x + new_width // 2, width)
+    min_y = max(center_y - new_height // 2, 0)
+    max_y = min(center_y + new_height // 2, height)
+
+    if as_circle:
+        # Fill the circle mask
+        for y in range(height):
+            for x in range(width):
+                dx = x - center_x
+                dy = y - center_y
+                distance = (dx * dx + dy * dy) ** 0.5
+                if distance <= new_width // 2:
+                    mask.putpixel((x, y), 255)
+    else:
+        # Fill the square mask
         for y in range(min_y, max_y):
             for x in range(min_x, max_x):
                 mask.putpixel((x, y), 255)
@@ -79,26 +97,28 @@ def main():
     output = config["output"]["result"]
 
     # Set up the argument parser
-    parser = argparse.ArgumentParser(description='Apply tint to the source image.')
+    parser = argparse.ArgumentParser(description='Automate blending images')
     parser.add_argument('--tint', type=float, default=0,
                         help='Tint percentage (float) to apply (default: 0)')
     parser.add_argument('--auto-tint', action='store_true', default=False,
                         help='Automatically detect tint percentage from the source image')
-    parser.add_argument('--sample-area', nargs=4, type=int, default=[200, 200, 400, 400],
+    parser.add_argument('--sample-area', nargs=4, type=int, default=None,
                         help='Sample area for automatic tint detection (default: 200, 200, 400, 400)')
     parser.add_argument('--mask', action='store_true', default=False,
                         help='Create a mask from the lock screen image')
     parser.add_argument('--circle', action='store_true', default=False,
                         help='Create a mask as a circle from the lock screen image')
-
+    parser.add_argument('--scale', type=int, default=100,
+                        help='Increase or decrease the size of the mask scale percentage (default: 100)')
     # Parse the arguments and call the main function
     args = parser.parse_args()
     tint_percentage = args.tint
+    sample_area = args.sample_area or [200, 200, 400, 400]
     lock_screen_img = Image.open(lock_screen_password)
     original_img = Image.open(original)
     original_img = original_img.resize(lock_screen_img.size)
 
-    mask = create_mask_from_images(lock_screen_img, as_circle=args.circle)
+    mask = create_mask_from_images(lock_screen_img, as_circle=args.circle, scale_percentage=args.scale)
     output_img = Image.new("RGBA", original_img.size, (0, 0, 0, 0))
     output_img.paste(original_img, (0, 0), mask)
 
@@ -120,7 +140,7 @@ def main():
             print("Warning: tint percentage will be ignored when using automatic tint detection")
         password_screen_image_path = config["input"]["password"]
         password_img = Image.open(password_screen_image_path)
-        tint_percentage = detect_tint_percentage(password_img, args.sample_area)
+        tint_percentage = detect_tint_percentage(password_img, sample_area)
 
     if tint_percentage:
         output_img = apply_tint(output_img, tint_percentage)

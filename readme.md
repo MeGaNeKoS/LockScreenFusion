@@ -40,6 +40,14 @@ pip install pillow
       python generate_profile.py
       ```
      Let the magic happen. This will generate the profile image.
+     ### Arguments
+        * `--tint TINT`: Tint percentage (float) to apply (default: 0)
+        * `--auto-tint:` Automatically detect tint percentage from the source image 
+        * `--sample-area X1 Y1 X2 Y2`: Sample area for automatic tint detection (default: 200, 200, 400, 400). Provide 4 integers as coordinates. 
+        * `--mask`: Create a mask from the lock screen image 
+        * `--circle`: Create a mask as a circle from the lock screen image 
+        * `--scale SCALE`: Increase or decrease the size of the mask scale percentage (default: 100)
+        
 
 3. The generated profile will be saved in `result/result.jpg`. Apply this image as your lock screen wallpaper.
 4. During the process, there are additional images created :
