@@ -5,9 +5,11 @@
     "password": "lockscreen/password.png"
   },
   "output": {
+    "background_layer": "layers/background.png",
+    "mask_layer": "layers/mask.png",
     "pattern": "backgrounds/pattern_lock_screen.png",
-    "result": "result/result.jpg",
-    "source_cropped": "source/cropped.jpg",
-    "source_resized": "source/resized.jpg"
+    "result": "result/result.png",
+    "source_cropped": "source/cropped.png",
+    "source_resized": "result/source_resized.png"
   }
 }

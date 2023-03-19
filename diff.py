@@ -77,13 +77,13 @@ def find_white_pixel_distances(ref_img):
     return left_distance, right_distance, top_distance, bottom_distance
 
 
-def cut_edges_and_resize(ref_img, target_distances, ref_distances):
+def cut_edges_and_resize(ref_img, zoomed_distances, ref_distances):
     # this need trial and error
     # But let's set an initial value
-    left_diff = ref_distances[0] - target_distances[0]
-    right_diff = ref_img.width - (ref_distances[1] - target_distances[1])
-    top_diff = ref_distances[2] - target_distances[2]
-    bottom_diff = ref_img.height - (ref_distances[3] - target_distances[3])
+    left_diff = ref_distances[0] - zoomed_distances[0]
+    right_diff = ref_img.width - (ref_distances[1] - zoomed_distances[1])
+    top_diff = ref_distances[2] - zoomed_distances[2]
+    bottom_diff = ref_img.height - (ref_distances[3] - zoomed_distances[3])
     while True:
         print(f"left_diff: {left_diff}, right_diff: {right_diff}, top_diff: {top_diff}, bottom_diff: {bottom_diff}")
         crop_ref_img = ref_img.crop((left_diff, top_diff, right_diff, bottom_diff))
@@ -112,7 +112,7 @@ def cut_edges_and_resize(ref_img, target_distances, ref_distances):
     return left_diff, top_diff, right_diff, bottom_diff
 
 
-if __name__ == '__main__':
+def main():
     with open("config.json") as f:
         config = json.load(f)
 
@@ -131,8 +131,20 @@ if __name__ == '__main__':
 
     crop_box = cut_edges_and_resize(lockscreen_img, zoomed_distances, ref_distances)
     resized_img = source_img.resize(lockscreen_img.size)
-    resized_img.save(source_resized_path)
+
+    try:
+        resized_img.save(source_resized_path)
+    except OSError:
+        resized_img.convert('RGB').save(source_resized_path)
+
     cropped_img = resized_img.crop(crop_box)
     resized_img = cropped_img.resize(lockscreen_img.size)
 
-    resized_img.save(source_cropped_path)
+    try:
+        resized_img.save(source_cropped_path)
+    except OSError:
+        resized_img.convert('RGB').save(source_cropped_path)
+
+
+if __name__ == '__main__':
+    main()

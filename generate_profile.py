@@ -44,7 +44,7 @@ def detect_tint_percentage(img, sample_area):
     return average_tint_percentage
 
 
-def create_mask_from_images(lock_screen_image):
+def create_mask_from_images(lock_screen_image, as_circle=False):
     # Create a mask with black pixels from the circle image that are not black in the original image
     width, height = lock_screen_image.size
     mask = Image.new("L", (width, height), 0)
@@ -58,16 +58,19 @@ def create_mask_from_images(lock_screen_image):
                 min_y = min(min_y, y)
                 max_x = max(max_x, x)
                 max_y = max(max_y, y)
+                if as_circle:
+                    mask.putpixel((x, y), 255)
 
-    # make mask square
-    for y in range(min_y, max_y):
-        for x in range(min_x, max_x):
-            mask.putpixel((x, y), 255)
+    if not as_circle:
+        # make mask square
+        for y in range(min_y, max_y):
+            for x in range(min_x, max_x):
+                mask.putpixel((x, y), 255)
 
     return mask
 
 
-if __name__ == "__main__":
+def main():
     with open("config.json") as f:
         config = json.load(f)
 
@@ -77,9 +80,16 @@ if __name__ == "__main__":
 
     # Set up the argument parser
     parser = argparse.ArgumentParser(description='Apply tint to the source image.')
-    parser.add_argument('--tint', type=float, default=0, help='Tint percentage (float) to apply (default: 0)')
-    parser.add_argument('--auto-tint', action='store_true', help='Automatically detect tint percentage from the source image')
-    parser.add_argument('--sample-area', nargs=4, type=int, default=[200, 200, 400, 400], help='Sample area for automatic tint detection (default: 200, 200, 400, 400)')
+    parser.add_argument('--tint', type=float, default=0,
+                        help='Tint percentage (float) to apply (default: 0)')
+    parser.add_argument('--auto-tint', action='store_true', default=False,
+                        help='Automatically detect tint percentage from the source image')
+    parser.add_argument('--sample-area', nargs=4, type=int, default=[200, 200, 400, 400],
+                        help='Sample area for automatic tint detection (default: 200, 200, 400, 400)')
+    parser.add_argument('--mask', action='store_true', default=False,
+                        help='Create a mask from the lock screen image')
+    parser.add_argument('--circle', action='store_true', default=False,
+                        help='Create a mask as a circle from the lock screen image')
 
     # Parse the arguments and call the main function
     args = parser.parse_args()
@@ -88,12 +98,19 @@ if __name__ == "__main__":
     original_img = Image.open(original)
     original_img = original_img.resize(lock_screen_img.size)
 
-    mask = create_mask_from_images(lock_screen_img)
-    output_img = Image.new("RGB", original_img.size, (0, 0, 0))
+    mask = create_mask_from_images(lock_screen_img, as_circle=args.circle)
+    output_img = Image.new("RGBA", original_img.size, (0, 0, 0, 0))
     output_img.paste(original_img, (0, 0), mask)
 
     # Find the bounding box of the mask
     bbox = mask.getbbox()
+    if args.mask:
+        # Save the mask
+        mask_layer = config["output"]["mask_layer"]
+        try:
+            mask.save(mask_layer)
+        except OSError:
+            mask.convert("RGB").save(mask_layer)
 
     # Crop the output image to the bounding box
     output_img = output_img.crop(bbox)
@@ -109,4 +126,11 @@ if __name__ == "__main__":
         output_img = apply_tint(output_img, tint_percentage)
 
     # Save the output image
-    output_img.save(output)
+    try:
+        output_img.save(output)
+    except OSError:
+        output_img.convert("RGB").save(output)
+
+
+if __name__ == "__main__":
+    main()
